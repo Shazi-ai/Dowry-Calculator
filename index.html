@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dowry Calculator</title>
+    <meta name="description" content="An advanced tool to estimate dowry risks and promote awareness about its legal and social implications in modern society.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#5D5CDE',
+                            600: '#4F4EC7',
+                            700: '#3F3EA0',
+                            800: '#3730a3',
+                            900: '#312e81'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    }
+                }
+            }
+        }
+
+        // Check for dark mode preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 160px;
+            height: 80px;
+        }
+        
+        .gauge-background {
+            width: 100%;
+            height: 100%;
+            border-top-left-radius: 80px;
+            border-top-right-radius: 80px;
+            border-bottom: 0;
+            background: conic-gradient(#22c55e 0%, #fbbf24 40%, #ef4444 80%);
+            overflow: hidden;
+        }
+
+        .gauge-mask {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 135px;
+            height: 67.5px;
+            background-color: white;
+            border-top-left-radius: 70px;
+            border-top-right-radius: 70px;
+        }
+
+        .dark .gauge-mask {
+            background-color: #1f2937;
+        }
+
+        .gauge-needle {
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform-origin: bottom center;
+            width: 4px;
+            height: 65px;
+            background-color: #334155;
+            border-radius: 4px 4px 0 0;
+            transform: translateX(-50%) rotate(0deg);
+            transition: transform 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .dark .gauge-needle {
+            background-color: #94a3b8;
+        }
+
+        .form-section {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .form-section.hidden {
+            opacity: 0;
+            transform: translateX(20px);
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .info-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 6px;
+        }
+
+        .result-container {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .result-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        @keyframes appear {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .factor-item {
+            animation: appear 0.3s forwards;
+            animation-delay: calc(var(--index) * 0.1s);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <header class="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-50 transition-colors duration-300">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="text-primary-500 text-3xl">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <div>
+                    <span class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-primary-700">Dowry</span>
+                    <span class="text-2xl font-bold text-gray-700 dark:text-gray-300">Calculator</span>
+                </div>
+            </div>
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#calculator" class="text-gray-700 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">Calculator</a>
+                <a href="#about" class="text-gray-700 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">About</a>
+                <a href="#legal" class="text-gray-700 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">Legal</a>
+                <a href="#faq" class="text-gray-700 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">FAQ</a>
+            </nav>
+            <div class="flex items-center space-x-4">
+                <button id="mobileMenuBtn" class="md:hidden text-gray-700 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden md:hidden bg-white dark:bg-gray-800 shadow-inner transition-all duration-300">
+            <div class="container mx-auto px-4 py-3 flex flex-col space-y-3">
+                <a href="#calculator" class="text-gray-700 dark:text-gray-300 py-2 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">Calculator</a>
+                <a href="#about" class="text-gray-700 dark:text-gray-300 py-2 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">About</a>
+                <a href="#legal" class="text-gray-700 dark:text-gray-300 py-2 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">Legal</a>
+                <a href="#faq" class="text-gray-700 dark:text-gray-300 py-2 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">FAQ</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <section id="hero" class="py-12 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 dark:text-gray-100 mb-4">Dowry Calculator</h1>
+            <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">An advanced tool to estimate dowry-related risks and promote awareness about its legal and social implications</p>
+        </section>
+
+        <section id="calculator" class="max-w-4xl mx-auto mb-16">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 transition-colors duration-300">
+                <!-- Calculator Form -->
+                <div id="calculator-form">
+                    <!-- Perspective Selector -->
+                    <div class="flex flex-col sm:flex-row justify-center mb-8">
+                        <div class="bg-gray-100 dark:bg-gray-700 p-1 rounded-xl shadow-inner flex">
+                            <button id="bride-tab" class="perspective-btn flex-1 py-3 px-5 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-primary-500 text-gray-900 dark:text-white shadow">
+                                <i class="fas fa-female mr-2"></i> Bride's Side
+                            </button>
+                            <button id="groom-tab" class="perspective-btn flex-1 py-3 px-5 rounded-lg font-medium transition-all duration-300 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <i class="fas fa-male mr-2"></i> Groom's Side
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Bride's Form -->
+                    <div id="bride-form" class="form-section">
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="relative">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Wedding Cost (₹)
+                                    <span class="info-tag bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        <i class="fas fa-info-circle mr-1"></i> Important
+                                    </span>
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-rupee-sign text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <input type="number" id="wedding-cost" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors" placeholder="e.g., 500000">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Gifts Value (₹)
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-gift text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <input type="number" id="gifts-value" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors" placeholder="e.g., 100000">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Jewelry Expenses (₹)
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-gem text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <input type="number" id="jewelry-expenses" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors" placeholder="e.g., 200000">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Demands
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-comment-dollar text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <select id="demand-level" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors">
+                                        <option value="None">None</option>
+                                        <option value="Verbal Hints">Verbal Hints</option>
+                                        <option value="Clear Demands">Clear Demands</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Marriage Type
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-ring text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <select id="marriage-type" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors">
+                                        <option value="Simple">Simple</option>
+                                        <option value="Traditional">Traditional</option>
+                                        <option value="Lavish">Lavish</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Location
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-map-marker-alt text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <select id="bride-location" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors">
+                                        <option value="Urban">Urban</option>
+                                        <option value="Rural">Rural</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Groom's Form -->
+                    <div id="groom-form" class="form-section hidden">
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Age
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-birthday-cake text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <input type="number" id="age" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors" placeholder="e.g., 28">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Profession
+                                    <span class="info-tag bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        <i class="fas fa-info-circle mr-1"></i> Important
+                                    </span>
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-briefcase text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <select id="profession" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors">
+                                        <option value="Other">Other</option>
+                                        <option value="IT/Software">IT/Software</option>
+                                        <option value="Doctor">Doctor</option>
+                                        <option value="Engineer">Engineer</option>
+                                        <option value="Government">Government</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Monthly Salary (₹)
+                                    <span class="info-tag bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        <i class="fas fa-info-circle mr-1"></i> Important
+                                    </span>
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-rupee-sign text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <input type="number" id="salary" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors" placeholder="e.g., 100000">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Education
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-graduation-cap text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <select id="education" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors">
+                                        <option value="Undergraduate">Undergraduate</option>
+                                        <option value="Graduate">Graduate</option>
+                                        <option value="Masters">Masters</option>
+                                        <option value="PhD">PhD</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Assets Owned
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-home text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <select id="assets" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors">
+                                        <option value="None">None</option>
+                                        <option value="Car">Car</option>
+                                        <option value="House">House</option>
+                                        <option value="Both Car and House">Both Car and House</option>
+                                        <option value="Multiple Properties">Multiple Properties</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Location
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-map-marker-alt text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <select id="groom-location" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors">
+                                        <option value="Urban">Urban</option>
+                                        <option value="Rural">Rural</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Family Pressure
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-users text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <select id="family-pressure" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors">
+                                        <option value="None">None</option>
+                                        <option value="Mild">Mild</option>
+                                        <option value="High">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Dowry Demand
+                                    <span class="info-tag bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                        <i class="fas fa-exclamation-circle mr-1"></i> Critical
+                                    </span>
+                                </label>
+                                <div class="relative mt-1">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i class="fas fa-hand-holding-usd text-gray-500 dark:text-gray-400"></i>
+                                    </div>
+                                    <select id="dowry-demand" class="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors">
+                                        <option value="None">None</option>
+                                        <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="mt-8 flex flex-col sm:flex-row gap-4">
+                        <button id="calculate-btn" class="flex-1 py-3 px-6 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-300 flex items-center justify-center font-medium shadow-md hover:shadow-lg">
+                            <i class="fas fa-calculator mr-2"></i> Calculate Risk
+                        </button>
+                        <button id="compare-btn" class="flex-1 py-3 px-6 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-300 flex items-center justify-center font-medium shadow-md hover:shadow-lg">
+                            <i class="fas fa-balance-scale mr-2"></i> Compare Both Sides
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Loading State -->
+                <div id="loading-state" class="hidden py-12 flex flex-col items-center justify-center">
+                    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500"></div>
+                    <p class="mt-4 text-gray-600 dark:text-gray-400">Analyzing data...</p>
+                </div>
+                
+                <!-- Results -->
+                <div id="results-container" class="result-container mt-10 hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
+                        <i class="fas fa-chart-pie mr-3 text-primary-500"></i>
+                        Risk Assessment Results
+                    </h2>
+                    <div id="single-result" class="hidden">
+                        <p class="text-gray-600 dark:text-gray-400 mb-6" id="perspective-text">Analysis for bride's side</p>
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
+                            <div class="flex flex-col md:flex-row items-center justify-between">
+                                <div class="gauge-container mb-6 md:mb-0">
+                                    <div class="gauge-background"></div>
+                                    <div class="gauge-mask"></div>
+                                    <div id="gauge-needle" class="gauge-needle"></div>
+                                </div>
+                                <div class="flex-1 ml-0 md:ml-8">
+                                    <div class="mb-4">
+                                        <span class="text-lg font-medium text-gray-700 dark:text-gray-300">Risk Score: </span>
+                                        <span id="risk-score" class="text-2xl font-bold text-primary-500">0/100</span>
+                                    </div>
+                                    <div class="flex items-center mb-2">
+                                        <div id="risk-level-indicator" class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                        <span id="risk-level-text" class="text-sm font-medium text-gray-600 dark:text-gray-400">Low Risk</span>
+                                    </div>
+                                    <div id="financial-impact" class="text-sm text-gray-600 dark:text-gray-400 hidden">
+                                        Estimated financial impact: <span id="financial-value" class="font-semibold">₹0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 grid md:grid-cols-2 gap-6">
+                                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                                    <h3 class="font-semibold text-primary-600 dark:text-primary-400 mb-3 flex items-center">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i> Key Risk Factors
+                                    </h3>
+                                    <ul id="factors-list" class="space-y-2 text-gray-700 dark:text-gray-300">
+                                        <li class="text-gray-500 dark:text-gray-400 italic">No significant risk factors</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                                    <h3 class="font-semibold text-green-600 dark:text-green-400 mb-3 flex items-center">
+                                        <i class="fas fa-lightbulb mr-2"></i> Recommendations
+                                    </h3>
+                                    <ul id="suggestions-list" class="space-y-2 text-gray-700 dark:text-gray-300">
+                                        <li class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                            <span>Maintain transparency in financial matters.</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800/20">
+                                <p class="text-sm text-red-700 dark:text-red-400 flex items-start">
+                                    <i class="fas fa-gavel mt-0.5 mr-2"></i>
+                                    <span><strong>Legal Note:</strong> Dowry is illegal under the Dowry Prohibition Act, 1961. This tool is for awareness purposes only.</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="comparison-result" class="hidden">
+                        <p class="text-gray-600 dark:text-gray-400 mb-6">Comparison between bride's and groom's side</p>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-blue-100 dark:border-blue-800/20">
+                                <div class="flex items-center mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800/30 flex items-center justify-center">
+                                        <i class="fas fa-female text-blue-600 dark:text-blue-400"></i>
+                                    </div>
+                                    <h3 class="ml-3 text-xl font-semibold text-gray-800 dark:text-gray-200">Bride's Side</h3>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-600 dark:text-gray-400">Risk Score:</span>
+                                        <span id="bride-risk-score" class="font-semibold text-blue-600 dark:text-blue-400">0/100</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                        <div id="bride-risk-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <span class="text-gray-600 dark:text-gray-400">Total Financial Burden:</span>
+                                    <span id="bride-financial" class="ml-2 font-semibold text-gray-800 dark:text-gray-200">₹0</span>
+                                </div>
+                                <div class="mt-4">
+                                    <h4 class="font-medium text-gray-700 dark:text-gray-300 mb-2">Key Factors:</h4>
+                                    <ul id="bride-factors" class="space-y-1 text-gray-600 dark:text-gray-400">
+                                        <li class="text-gray-500 dark:text-gray-400 italic">No significant factors</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-green-100 dark:border-green-800/20">
+                                <div class="flex items-center mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-800/30 flex items-center justify-center">
+                                        <i class="fas fa-male text-green-600 dark:text-green-400"></i>
+                                    </div>
+                                    <h3 class="ml-3 text-xl font-semibold text-gray-800 dark:text-gray-200">Groom's Side</h3>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-600 dark:text-gray-400">Risk Score:</span>
+                                        <span id="groom-risk-score" class="font-semibold text-green-600 dark:text-green-400">0/100</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                        <div id="groom-risk-bar" class="bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <span class="text-gray-600 dark:text-gray-400">Dowry Demand Level:</span>
+                                    <span id="groom-demand" class="ml-2 font-semibold text-gray-800 dark:text-gray-200">None</span>
+                                </div>
+                                <div class="mt-4">
+                                    <h4 class="font-medium text-gray-700 dark:text-gray-300 mb-2">Key Factors:</h4>
+                                    <ul id="groom-factors" class="space-y-1 text-gray-600 dark:text-gray-400">
+                                        <li class="text-gray-500 dark:text-gray-400 italic">No significant factors</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
+                                <h3 class="font-semibold text-xl text-gray-800 dark:text-gray-200 mb-4">Comparison Analysis</h3>
+                                <div class="mb-6">
+                                    <canvas id="comparison-chart" height="250"></canvas>
+                                </div>
+                                <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-100 dark:border-yellow-800/20">
+                                    <p class="text-sm text-yellow-700 dark:text-yellow-400 flex items-start">
+                                        <i class="fas fa-info-circle mt-0.5 mr-2"></i>
+                                        <span id="comparison-insight">Analyzing comparison data...</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-center">
+                        <button id="reset-btn" class="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center">
+                            <i class="fas fa-redo mr-2"></i> Start Over
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="max-w-4xl mx-auto mb-16">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 transition-colors duration-300">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
+                    <i class="fas fa-info-circle mr-3 text-primary-500"></i>
+                    About This Tool
+                </h2>
+                <div class="prose prose-lg max-w-none text-gray-700 dark:text-gray-300">
+                    <p>This AI-powered calculator aims to educate users about the financial and social implications of dowry practices, promoting dowry-free marriages and gender equality. By analyzing various factors, it helps identify potential dowry-related risks.</p>
+                    
+                    <p class="mt-4">The tool uses a sophisticated algorithm to evaluate:</p>
+                    <ul class="list-disc pl-5 mt-2 space-y-1">
+                        <li>Financial patterns that may indicate dowry transactions</li>
+                        <li>Social factors contributing to dowry pressure</li>
+                        <li>Educational and awareness metrics</li>
+                        <li>Regional variations in dowry practices</li>
+                    </ul>
+                    
+                    <div class="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-lg mt-6">
+                        <p class="italic text-primary-700 dark:text-primary-400">
+                            Our mission is to promote awareness about the social and legal implications of dowry and encourage healthier marriage practices based on mutual respect and equality.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Legal Information -->
+        <section id="legal" class="max-w-4xl mx-auto mb-16">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 transition-colors duration-300">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
+                    <i class="fas fa-gavel mr-3 text-primary-500"></i>
+                    Legal Information
+                </h2>
+                <div class="prose prose-lg max-w-none text-gray-700 dark:text-gray-300">
+                    <p>Under the <strong>Dowry Prohibition Act, 1961</strong>, giving, taking, or demanding dowry is a criminal offense in India. The act defines dowry as any property or valuable security given or agreed to be given in connection with marriage.</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 mt-6">
+                        <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                            <h3 class="font-semibold text-red-700 dark:text-red-400">Penalties</h3>
+                            <ul class="list-disc pl-5 mt-2 space-y-1 text-red-700 dark:text-red-400">
+                                <li>Imprisonment for a term not less than 5 years</li>
+                                <li>Fine not less than ₹15,000 or the amount of dowry, whichever is higher</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                            <h3 class="font-semibold text-blue-700 dark:text-blue-400">Protection</h3>
+                            <ul class="list-disc pl-5 mt-2 space-y-1 text-blue-700 dark:text-blue-400">
+                                <li>The Protection of Women from Domestic Violence Act, 2005</li>
+                                <li>Section 498A of Indian Penal Code (harassment for dowry)</li>
+                                <li>Section 304B (dowry death)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p class="mt-6"><strong>Disclaimer:</strong> This tool is for educational and awareness purposes only. It is not legal advice. If you are facing dowry-related issues, please consult with appropriate legal authorities or counselors.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="max-w-4xl mx-auto mb-16">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 transition-colors duration-300">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
+                    <i class="fas fa-question-circle mr-3 text-primary-500"></i>
+                    Frequently Asked Questions
+                </h2>
+                
+                <div class="mt-6 space-y-4">
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <details class="group">
+                            <summary class="flex justify-between items-center p-4 cursor-pointer bg-gray-50 dark:bg-gray-700">
+                                <span class="text-lg font-medium text-gray-800 dark:text-gray-200">Is dowry illegal in India?</span>
+                                <i class="fas fa-chevron-down text-gray-500 dark:text-gray-400 group-open:transform group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                                <p class="text-gray-700 dark:text-gray-300">Yes, under the Dowry Prohibition Act, 1961, giving, taking, or demanding dowry is a punishable offense. The law applies to all communities in India regardless of religion or cultural practices.</p>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <details class="group">
+                            <summary class="flex justify-between items-center p-4 cursor-pointer bg-gray-50 dark:bg-gray-700">
+                                <span class="text-lg font-medium text-gray-800 dark:text-gray-200">How does this calculator help prevent dowry?</span>
+                                <i class="fas fa-chevron-down text-gray-500 dark:text-gray-400 group-open:transform group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                                <p class="text-gray-700 dark:text-gray-300">This calculator helps by identifying potential risk factors that may indicate dowry practices. By raising awareness about these factors, it encourages both parties to make informed decisions and avoid practices that could lead to dowry demands or expectations.</p>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <details class="group">
+                            <summary class="flex justify-between items-center p-4 cursor-pointer bg-gray-50 dark:bg-gray-700">
+                                <span class="text-lg font-medium text-gray-800 dark:text-gray-200">What's the difference between gifts and dowry?</span>
+                                <i class="fas fa-chevron-down text-gray-500 dark:text-gray-400 group-open:transform group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                                <p class="text-gray-700 dark:text-gray-300">Voluntary gifts given out of love and affection without any demand or pressure are different from dowry. Dowry involves demand or expectation of property or valuables as a condition for marriage. The key difference lies in whether there is coercion or expectation involved.</p>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <details class="group">
+                            <summary class="flex justify-between items-center p-4 cursor-pointer bg-gray-50 dark:bg-gray-700">
+                                <span class="text-lg font-medium text-gray-800 dark:text-gray-200">Where can I report dowry demands?</span>
+                                <i class="fas fa-chevron-down text-gray-500 dark:text-gray-400 group-open:transform group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                                <p class="text-gray-700 dark:text-gray-300">You can report dowry demands to:</p>
+                                <ul class="list-disc pl-5 mt-2 space-y-1 text-gray-700 dark:text-gray-300">
+                                    <li>Local police station</li>
+                                    <li>Women's helpline (1091)</li>
+                                    <li>National Commission for Women</li>
+                                    <li>State Women's Commissions</li>
+                                    <li>Family counseling centers</li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-900 text-white py-8 transition-colors duration-300">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <div class="flex items-center space-x-2">
+                        <div class="text-primary-400 text-2xl">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <div class="font-bold text-xl">DowryAwareness</div>
+                    </div>
+                    <p class="text-gray-400 mt-2 text-sm">Promoting dowry-free marriages for a better society.</p>
+                </div>
+                <div class="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-6 text-center md:text-left">
+                    <a href="#calculator" class="text-gray-400 hover:text-white transition-colors">Calculator</a>
+                    <a href="#about" class="text-gray-400 hover:text-white transition-colors">About</a>
+                    <a href="#legal" class="text-gray-400 hover:text-white transition-colors">Legal</a>
+                    <a href="#faq" class="text-gray-400 hover:text-white transition-colors">FAQ</a>
+                </div>
+            </div>
+            <div class="mt-8 pt-6 border-t border-gray-800 text-center text-gray-500 text-sm">
+                <p>© 2023 DowryAwarenessTool. All rights reserved.</p>
+                <p class="mt-2">For educational purposes only. This tool is not a substitute for legal advice.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Variables
+            let currentPerspective = 'bride';
+            let brideData = {
+                weddingCost: '',
+                giftsValue: '',
+                jewelryExpenses: '',
+                demandLevel: 'None',
+                marriageType: 'Simple',
+                location: 'Urban'
+            };
+            let groomData = {
+                age: '',
+                profession: 'Other',
+                salary: '',
+                education: 'Undergraduate',
+                assets: 'None',
+                location: 'Urban',
+                familyPressure: 'None',
+                dowryDemand: 'None'
+            };
+            let comparisonChart = null;
+            
+            // DOM Elements
+            const brideTab = document.getElementById('bride-tab');
+            const groomTab = document.getElementById('groom-tab');
+            const brideForm = document.getElementById('bride-form');
+            const groomForm = document.getElementById('groom-form');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const compareBtn = document.getElementById('compare-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const resultsContainer = document.getElementById('results-container');
+            const singleResult = document.getElementById('single-result');
+            const comparisonResult = document.getElementById('comparison-result');
+            const loadingState = document.getElementById('loading-state');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+
+            // Mobile Menu Toggle
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            // Tab Switching
+            brideTab.addEventListener('click', () => {
+                currentPerspective = 'bride';
+                brideTab.classList.add('bg-white', 'dark:bg-primary-500', 'text-gray-900', 'dark:text-white', 'shadow');
+                brideTab.classList.remove('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-50', 'dark:hover:bg-gray-600');
+                
+                groomTab.classList.remove('bg-white', 'dark:bg-primary-500', 'text-gray-900', 'dark:text-white', 'shadow');
+                groomTab.classList.add('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-50', 'dark:hover:bg-gray-600');
+                
+                brideForm.classList.remove('hidden');
+                groomForm.classList.add('hidden');
+            });
+            
+            groomTab.addEventListener('click', () => {
+                currentPerspective = 'groom';
+                groomTab.classList.add('bg-white', 'dark:bg-primary-500', 'text-gray-900', 'dark:text-white', 'shadow');
+                groomTab.classList.remove('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-50', 'dark:hover:bg-gray-600');
+                
+                brideTab.classList.remove('bg-white', 'dark:bg-primary-500', 'text-gray-900', 'dark:text-white', 'shadow');
+                brideTab.classList.add('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-50', 'dark:hover:bg-gray-600');
+                
+                groomForm.classList.remove('hidden');
+                brideForm.classList.add('hidden');
+            });
+            
+            // Input Handling
+            function collectBrideData() {
+                brideData = {
+                    weddingCost: document.getElementById('wedding-cost').value,
+                    giftsValue: document.getElementById('gifts-value').value,
+                    jewelryExpenses: document.getElementById('jewelry-expenses').value,
+                    demandLevel: document.getElementById('demand-level').value,
+                    marriageType: document.getElementById('marriage-type').value,
+                    location: document.getElementById('bride-location').value
+                };
+            }
+            
+            function collectGroomData() {
+                groomData = {
+                    age: document.getElementById('age').value,
+                    profession: document.getElementById('profession').value,
+                    salary: document.getElementById('salary').value,
+                    education: document.getElementById('education').value,
+                    assets: document.getElementById('assets').value,
+                    location: document.getElementById('groom-location').value,
+                    familyPressure: document.getElementById('family-pressure').value,
+                    dowryDemand: document.getElementById('dowry-demand').value
+                };
+            }
+            
+            // Calculation Logic
+            function calculateRisk(data, side) {
+                let score = 0;
+                const factors = [];
+
+                if (side === 'bride') {
+                    const weddingCost = parseInt(data.weddingCost) || 0;
+                    if (weddingCost > 1000000) { score += 30; factors.push('High wedding cost (₹10 lakh+)'); }
+                    else if (weddingCost > 500000) { score += 20; factors.push('Significant wedding cost (₹5 lakh+)'); }
+                    else if (weddingCost > 200000) { score += 10; factors.push('Moderate wedding cost (₹2 lakh+)'); }
+
+                    const giftsValue = parseInt(data.giftsValue) || 0;
+                    if (giftsValue > 300000) { score += 30; factors.push('High gift value (₹3 lakh+)'); }
+                    else if (giftsValue > 100000) { score += 20; factors.push('Notable gift value (₹1 lakh+)'); }
+                    else if (giftsValue > 50000) { score += 10; factors.push('Moderate gift value (₹50k+)'); }
+
+                    const jewelryExpenses = parseInt(data.jewelryExpenses) || 0;
+                    if (jewelryExpenses > 500000) { score += 30; factors.push('High jewelry expenses (₹5 lakh+)'); }
+                    else if (jewelryExpenses > 200000) { score += 20; factors.push('Significant jewelry expenses (₹2 lakh+)'); }
+                    else if (jewelryExpenses > 100000) { score += 10; factors.push('Moderate jewelry expenses (₹1 lakh+)'); }
+
+                    if (data.demandLevel === 'Clear Demands') { score += 30; factors.push('Clear demands from groom family'); }
+                    else if (data.demandLevel === 'Verbal Hints') { score += 20; factors.push('Verbal hints about expectations'); }
+
+                    if (data.marriageType === 'Lavish') { score += 20; factors.push('Lavish marriage type'); }
+                    else if (data.marriageType === 'Traditional') { score += 10; factors.push('Traditional marriage type'); }
+
+                    if (data.location === 'Rural') { score += 10; factors.push('Rural location (higher dowry prevalence)'); }
+
+                    const totalBurden = weddingCost + giftsValue + jewelryExpenses;
+                    return { score: Math.min(score, 100), factors, totalBurden };
+                } else {
+                    const age = parseInt(data.age) || 0;
+                    if (age > 35) { score += 15; factors.push('Age above 35'); }
+                    else if (age > 30) { score += 10; factors.push('Age above 30'); }
+
+                    if (data.profession === 'Doctor' || data.profession === 'IT/Software') { 
+                        score += 20; factors.push('High-demand profession'); 
+                    }
+                    else if (data.profession === 'Engineer' || data.profession === 'Government') { 
+                        score += 10; factors.push('Notable profession'); 
+                    }
+
+                    const salary = parseInt(data.salary) || 0;
+                    if (salary > 150000) { score += 30; factors.push('High salary (₹1.5 lakh+/month)'); }
+                    else if (salary > 75000) { score += 20; factors.push('Good salary (₹75k+/month)'); }
+                    else if (salary > 40000) { score += 10; factors.push('Moderate salary (₹40k+/month)'); }
+
+                    if (data.education === 'PhD') { score += 20; factors.push('PhD education'); }
+                    else if (data.education === 'Masters') { score += 10; factors.push('Masters education'); }
+
+                    if (data.assets === 'Multiple Properties') { score += 30; factors.push('Multiple properties owned'); }
+                    else if (data.assets === 'Both Car and House') { score += 20; factors.push('Both car and house owned'); }
+                    else if (data.assets === 'Car' || data.assets === 'House') { score += 10; factors.push('Car or house owned'); }
+
+                    if (data.familyPressure === 'High') { score += 30; factors.push('High family pressure for dowry'); }
+                    else if (data.familyPressure === 'Mild') { score += 10; factors.push('Mild family pressure'); }
+
+                    if (data.dowryDemand === 'High') { score += 40; factors.push('High dowry demand (critical risk)'); }
+                    else if (data.dowryDemand === 'Medium') { score += 30; factors.push('Medium dowry demand'); }
+                    else if (data.dowryDemand === 'Low') { score += 20; factors.push('Low dowry demand'); }
+
+                    return { score: Math.min(score, 100), factors, demandValue: data.dowryDemand || 'None' };
+                }
+            }
+            
+            function getSuggestions(score, side) {
+                const suggestions = [];
+                if (score >= 70) {
+                    suggestions.push("Document all financial transactions and exchanges carefully");
+                    suggestions.push("Consider consulting with legal advisors about marriage arrangements");
+                    suggestions.push("Be cautious of sudden demands or expectations from the other family");
+                    
+                    if (side === 'bride') {
+                        suggestions.push("Communicate concerns openly with your partner");
+                        suggestions.push("Consider dowry-free marriage pledges or ceremonies");
+                    } else {
+                        suggestions.push("Explicitly refuse any dowry requests from family members");
+                        suggestions.push("Educate family members about legal implications of dowry");
+                    }
+                } else if (score >= 40) {
+                    suggestions.push("Maintain clear financial boundaries in all wedding arrangements");
+                    suggestions.push("Discuss expectations transparently with all parties involved");
+                    suggestions.push("Opt for voluntary, modest gift exchanges if culturally appropriate");
+                    
+                    if (side === 'bride') {
+                        suggestions.push("Be aware of indirect demands disguised as traditions");
+                    } else {
+                        suggestions.push("Communicate with family about progressive marriage values");
+                    }
+                } else {
+                    suggestions.push("Maintain transparency in financial matters throughout the process");
+                    suggestions.push("Stay informed about dowry prevention laws and resources");
+                    suggestions.push("Focus on building a relationship based on mutual respect and understanding");
+                }
+                return suggestions;
+            }
+            
+            function getRiskLevel(score) {
+                if (score >= 70) return { level: 'High Risk', color: 'bg-red-500' };
+                if (score >= 40) return { level: 'Medium Risk', color: 'bg-yellow-500' };
+                return { level: 'Low Risk', color: 'bg-green-500' };
+            }
+            
+            function getComparisonInsight(brideScore, groomScore) {
+                const totalRisk = (brideScore + groomScore) / 2;
+                
+                if (totalRisk >= 60) {
+                    return "High overall risk detected. Both parties should exercise caution and consider legal implications. Open communication about expectations is strongly recommended before proceeding.";
+                } else if (totalRisk >= 40) {
+                    return "Moderate risk factors present. We recommend transparent discussions about wedding expenses and expectations to avoid future conflicts.";
+                } else {
+                    return "Low overall risk. Continue to maintain open communication and awareness of legal boundaries regarding gifts and financial exchanges.";
+                }
+            }
+            
+            // Display Functions
+            function updateGaugeNeedle(score) {
+                const rotation = (score / 100) * 180;
+                document.getElementById('gauge-needle').style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+            }
+            
+            function displaySingleResult(result, perspective) {
+                document.getElementById('perspective-text').textContent = `Analysis for ${perspective}'s side`;
+                document.getElementById('risk-score').textContent = `${result.score}/100`;
+                
+                const riskLevel = getRiskLevel(result.score);
+                document.getElementById('risk-level-indicator').className = `w-3 h-3 rounded-full ${riskLevel.color} mr-2`;
+                document.getElementById('risk-level-text').textContent = riskLevel.level;
+                
+                updateGaugeNeedle(result.score);
+                
+                // Financial impact (only for bride side)
+                const financialImpact = document.getElementById('financial-impact');
+                if (perspective === 'bride' && 'totalBurden' in result) {
+                    financialImpact.classList.remove('hidden');
+                    document.getElementById('financial-value').textContent = `₹${result.totalBurden.toLocaleString()}`;
+                } else {
+                    financialImpact.classList.add('hidden');
+                }
+                
+                // Factors
+                const factorsList = document.getElementById('factors-list');
+                factorsList.innerHTML = '';
+                
+                if (result.factors.length === 0) {
+                    factorsList.innerHTML = '<li class="text-gray-500 dark:text-gray-400 italic">No significant risk factors</li>';
+                } else {
+                    result.factors.forEach((factor, index) => {
+                        const li = document.createElement('li');
+                        li.className = 'flex items-start factor-item';
+                        li.style.setProperty('--index', index);
+                        
+                        const icon = document.createElement('i');
+                        icon.className = 'fas fa-exclamation-circle text-red-500 mt-1 mr-2';
+                        
+                        const span = document.createElement('span');
+                        span.textContent = factor;
+                        
+                        li.appendChild(icon);
+                        li.appendChild(span);
+                        factorsList.appendChild(li);
+                    });
+                }
+                
+                // Suggestions
+                const suggestionsList = document.getElementById('suggestions-list');
+                suggestionsList.innerHTML = '';
+                
+                const suggestions = getSuggestions(result.score, perspective);
+                suggestions.forEach((suggestion, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-start factor-item';
+                    li.style.setProperty('--index', index);
+                    
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-check-circle text-green-500 mt-1 mr-2';
+                    
+                    const span = document.createElement('span');
+                    span.textContent = suggestion;
+                    
+                    li.appendChild(icon);
+                    li.appendChild(span);
+                    suggestionsList.appendChild(li);
+                });
+            }
+            
+            function displayComparisonResult(brideResult, groomResult) {
+                // Bride side data
+                document.getElementById('bride-risk-score').textContent = `${brideResult.score}/100`;
+                document.getElementById('bride-risk-bar').style.width = `${brideResult.score}%`;
+                document.getElementById('bride-financial').textContent = `₹${brideResult.totalBurden.toLocaleString()}`;
+                
+                const brideFactors = document.getElementById('bride-factors');
+                brideFactors.innerHTML = '';
+                
+                if (brideResult.factors.length === 0) {
+                    brideFactors.innerHTML = '<li class="text-gray-500 dark:text-gray-400 italic">No significant factors</li>';
+                } else {
+                    brideResult.factors.forEach(factor => {
+                        const li = document.createElement('li');
+                        li.className = 'flex items-start';
+                        li.innerHTML = `<i class="fas fa-circle text-blue-500 text-xs mt-1.5 mr-2"></i><span>${factor}</span>`;
+                        brideFactors.appendChild(li);
+                    });
+                }
+                
+                // Groom side data
+                document.getElementById('groom-risk-score').textContent = `${groomResult.score}/100`;
+                document.getElementById('groom-risk-bar').style.width = `${groomResult.score}%`;
+                document.getElementById('groom-demand').textContent = groomResult.demandValue;
+                
+                const groomFactors = document.getElementById('groom-factors');
+                groomFactors.innerHTML = '';
+                
+                if (groomResult.factors.length === 0) {
+                    groomFactors.innerHTML = '<li class="text-gray-500 dark:text-gray-400 italic">No significant factors</li>';
+                } else {
+                    groomResult.factors.forEach(factor => {
+                        const li = document.createElement('li');
+                        li.className = 'flex items-start';
+                        li.innerHTML = `<i class="fas fa-circle text-green-500 text-xs mt-1.5 mr-2"></i><span>${factor}</span>`;
+                        groomFactors.appendChild(li);
+                    });
+                }
+                
+                // Comparison insights
+                document.getElementById('comparison-insight').textContent = getComparisonInsight(brideResult.score, groomResult.score);
+                
+                // Chart
+                const ctx = document.getElementById('comparison-chart').getContext('2d');
+                
+                // Destroy previous chart if it exists
+                if (comparisonChart) {
+                    comparisonChart.destroy();
+                }
+                
+                // Create new chart
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                comparisonChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['Risk Score', 'Financial Impact', 'Social Factors', 'Legal Risk', 'Tradition Factor'],
+                        datasets: [
+                            {
+                                label: 'Bride',
+                                data: [
+                                    brideResult.score,
+                                    Math.min(brideResult.totalBurden / 10000, 100),
+                                    brideResult.location === 'Rural' ? 80 : 50,
+                                    brideResult.demandLevel === 'Clear Demands' ? 90 : 
+                                        brideResult.demandLevel === 'Verbal Hints' ? 60 : 30,
+                                    brideResult.marriageType === 'Lavish' ? 80 : 
+                                        brideResult.marriageType === 'Traditional' ? 60 : 30
+                                ],
+                                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                borderColor: 'rgba(59, 130, 246, 0.8)',
+                                pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+                            },
+                            {
+                                label: 'Groom',
+                                data: [
+                                    groomResult.score,
+                                    parseInt(groomData.salary) ? Math.min((parseInt(groomData.salary) / 1000), 100) : 30,
+                                    groomResult.familyPressure === 'High' ? 90 : 
+                                        groomResult.familyPressure === 'Mild' ? 60 : 30,
+                                    groomResult.dowryDemand === 'High' ? 90 : 
+                                        groomResult.dowryDemand === 'Medium' ? 60 : 
+                                        groomResult.dowryDemand === 'Low' ? 30 : 10,
+                                    parseInt(groomData.age) > 30 ? 70 : 40
+                                ],
+                                backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                                borderColor: 'rgba(16, 185, 129, 0.8)',
+                                pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: 'rgba(16, 185, 129, 1)'
+                            }
+                        ]
+                    },
+                    options: {
+                        elements: {
+                            line: {
+                                tension: 0.2
+                            }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                                },
+                                grid: {
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                                },
+                                pointLabels: {
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                ticks: {
+                                    backdropColor: 'transparent',
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    boxWidth: 15,
+                                    padding: 20,
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)'
+                                }
+                            }
+                        },
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+            
+            // Button Actions
+            calculateBtn.addEventListener('click', async () => {
+                // Show loading state
+                document.getElementById('calculator-form').classList.add('hidden');
+                loadingState.classList.remove('hidden');
+                resultsContainer.classList.add('hidden');
+                
+                // Collect data
+                if (currentPerspective === 'bride') {
+                    collectBrideData();
+                } else {
+                    collectGroomData();
+                }
+                
+                // Simulate calculation delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Calculate result
+                const result = calculateRisk(
+                    currentPerspective === 'bride' ? brideData : groomData,
+                    currentPerspective
+                );
+                
+                // Hide loading, show results
+                loadingState.classList.add('hidden');
+                singleResult.classList.remove('hidden');
+                comparisonResult.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+                resultsContainer.classList.add('visible');
+                
+                // Display results
+                displaySingleResult(result, currentPerspective);
+                
+                // Scroll to results
+                resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            compareBtn.addEventListener('click', async () => {
+                // Show loading state
+                document.getElementById('calculator-form').classList.add('hidden');
+                loadingState.classList.remove('hidden');
+                resultsContainer.classList.add('hidden');
+                
+                // Collect data from both forms
+                collectBrideData();
+                collectGroomData();
+                
+                // Simulate calculation delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Calculate results
+                const brideResult = calculateRisk(brideData, 'bride');
+                const groomResult = calculateRisk(groomData, 'groom');
+                
+                // Hide loading, show comparison
+                loadingState.classList.add('hidden');
+                singleResult.classList.add('hidden');
+                comparisonResult.classList.remove('hidden');
+                resultsContainer.classList.remove('hidden');
+                resultsContainer.classList.add('visible');
+                
+                // Display comparison
+                displayComparisonResult(brideResult, groomResult);
+                
+                // Scroll to results
+                resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            resetBtn.addEventListener('click', () => {
+                // Hide results, show form
+                resultsContainer.classList.remove('visible');
+                
+                setTimeout(() => {
+                    resultsContainer.classList.add('hidden');
+                    document.getElementById('calculator-form').classList.remove('hidden');
+                    
+                    // Reset form inputs (optional)
+                    document.getElementById('wedding-cost').value = '';
+                    document.getElementById('gifts-value').value = '';
+                    document.getElementById('jewelry-expenses').value = '';
+                    document.getElementById('demand-level').value = 'None';
+                    document.getElementById('marriage-type').value = 'Simple';
+                    document.getElementById('bride-location').value = 'Urban';
+                    
+                    document.getElementById('age').value = '';
+                    document.getElementById('profession').value = 'Other';
+                    document.getElementById('salary').value = '';
+                    document.getElementById('education').value = 'Undergraduate';
+                    document.getElementById('assets').value = 'None';
+                    document.getElementById('groom-location').value = 'Urban';
+                    document.getElementById('family-pressure').value = 'None';
+                    document.getElementById('dowry-demand').value = 'None';
+                    
+                    // Reset data objects
+                    brideData = {
+                        weddingCost: '',
+                        giftsValue: '',
+                        jewelryExpenses: '',
+                        demandLevel: 'None',
+                        marriageType: 'Simple',
+                        location: 'Urban'
+                    };
+                    
+                    groomData = {
+                        age: '',
+                        profession: 'Other',
+                        salary: '',
+                        education: 'Undergraduate',
+                        assets: 'None',
+                        location: 'Urban',
+                        familyPressure: 'None',
+                        dowryDemand: 'None'
+                    };
+                    
+                    // Scroll to form
+                    document.getElementById('calculator').scrollIntoView({ behavior: 'smooth' });
+                }, 300);
+            });
+            
+            // Smooth scroll for navigation links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    
+                    // Close mobile menu if open
+                    if (!mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                    
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
